@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE struts PUBLIC
+   "-//Apache Software Foundation//DTD Struts Configuration 2.3//EN"
+   "http://struts.apache.org/dtds/struts-2.3.dtd">
+<struts>
+    <package name="main" namespace="/" extends="struts-default">
+
+        <result-types>
+            <result-type name="tiles" class="org.apache.struts2.views.tiles.TilesResult"/>
+            <result-type name="imageResult" class="com.notsosecure.devsecops.result.CustomImageBytesResult"/>
+        </result-types>
+
+        <interceptors>
+            <interceptor name="authentication" class="com.notsosecure.devsecops.interceptor.AuthenticationInterceptor"/>
+            <interceptor-stack name="authenticationStack">
+                <interceptor-ref name="authentication"/>
+                <interceptor-ref name="defaultStack"/>
+            </interceptor-stack>
+        </interceptors>
+
+        <default-interceptor-ref name="defaultStack"/>
+
+        <global-results>
+            <result name="login" type="redirect">view.action</result>
+            <result name="error">/WEB-INF/content/error.jsp</result>
+        </global-results>
+
+        <action name="admin" class="com.notsosecure.devsecops.actions.AdminAction">
+            <result name="success">/WEB-INF/content/admin.jsp</result>
+        </action>
+
+        <action name="home" class="com.notsosecure.devsecops.actions.HomeAction">
+            <result name="success" type="tiles">home.view</result>
+        </action>
+        <!--products action-->
+        <action name="products" class="com.notsosecure.devsecops.actions.ProductsAction">
+            <result name="success" type="tiles">products.view</result>
+        </action>
+        <action name="productsById" class="com.notsosecure.devsecops.actions.ProductsAction" method="getProductsByCatId">
+            <result name="success" type="tiles">products.view</result>
+        </action>
+        <action name="productsByIdAdmin" class="com.notsosecure.devsecops.actions.ProductsAction" method="getProductsByCatId">
+            <result name="success">/WEB-INF/content/productsResult.jsp</result>
+        </action>
+        <action name="deleteProduct" class="com.notsosecure.devsecops.actions.ProductsAction" method="delete">
+            <result name="success">/WEB-INF/content/admin.jsp</result>
+        </action>
+
+        <action name="viewProduct" class="com.notsosecure.devsecops.actions.ProductsAction" method="view">
+            <result name="success">/WEB-INF/content/admin.jsp</result>
+        </action>
+
+        <action name="updateProduct" class="com.notsosecure.devsecops.actions.ProductsAction" method="update">
+            <result name="success">/WEB-INF/content/admin.jsp</result>
+        </action>
+
+        <action name="productDetails" class="com.notsosecure.devsecops.actions.ProductsAction" method="getProductsDetails">
+            <result name="success" type="tiles">productDetails.view</result>
+        </action>
+        <action name="productsByBrandId" class="com.notsosecure.devsecops.actions.ProductsAction" method="getProductsByBrandId">
+            <result name="success" type="tiles">products.view</result>
+        </action>
+        <action name="productsByPrice" class="com.notsosecure.devsecops.actions.ProductsAction" method="getProductsByPrice">
+            <result name="success" type="tiles">products.view</result>
+        </action>
+
+        <action name="search" class="com.notsosecure.devsecops.actions.ProductsAction" method="search">
+            <result name="success">/WEB-INF/content/searchResult.jsp</result>
+        </action>
+
+        <action name="addProduct" class="com.notsosecure.devsecops.actions.ProductsAction" method="addProduct">
+            <result name="success" type="redirect">admin.action</result>
+            <result name="input">/WEB-INF/content/admin.jsp</result>
+        </action>
+
+        <!--commons actions-->
+        <action name="checkoutView" class="com.notsosecure.devsecops.actions.CheckOutAction" method="view">
+            <result name="success" type="tiles">checkout.view</result>
+        </action>
+        
+        <action name="checkout" class="com.notsosecure.devsecops.actions.CheckOutAction">
+            <interceptor-ref name="authenticationStack"/>
+            <result name="success" type="redirectAction">
+            	        <param name="actionName">home.action</param>
+       					<param name="message">${message}</param>
+            </result>
+        </action>
+
+        <action name="showImage" class="com.notsosecure.devsecops.actions.ImageAction">
+            <result name="success" type="imageResult"></result>
+        </action>
+
+        <action name="cart" class="com.notsosecure.devsecops.actions.CartAction">
+            <interceptor-ref name="authenticationStack"/>
+            <result name="success" type="tiles">cart.view</result>
+        </action>
+
+        <action name="addToCart" class="com.notsosecure.devsecops.actions.CartAction" method="addToCart">
+            <interceptor-ref name="authenticationStack"/>
+            <result name="success" type="redirect">cart.action</result>
+        </action>
+
+        <action name="deleteCart" class="com.notsosecure.devsecops.actions.CartAction" method="deleteFromCart">
+            <interceptor-ref name="authenticationStack"/>
+            <result name="success" type="redirect">cart.action</result>
+        </action>
+
+        <!--login actions-->
+        <action name="view" class="com.notsosecure.devsecops.actions.LoginAction" method="view">
+            <result name="success" type="tiles">login.view</result>
+        </action>
+
+        <action name="register" class="com.notsosecure.devsecops.actions.LoginAction" method="register">
+            <result name="success" type="tiles">login.view</result>
+            <result name="input" type="tiles">login.view</result>
+        </action>
+
+        <action name="accountView" class="com.notsosecure.devsecops.actions.AccountAction" method="accountView">
+            <interceptor-ref name="authenticationStack"/>
+            <result name="success" type="tiles">account.view</result>
+        </action>
+
+        <action name="accountUpdate" class="com.notsosecure.devsecops.actions.AccountAction" method="accountUpdate">
+            <interceptor-ref name="authenticationStack"/>
+            <result name="success" type="redirectAction">
+            	        <param name="actionName">home.action</param>
+       					<param name="message">${message}</param>
+            </result>
+            <result name="input" type="tiles">account.view</result>
+        </action>
+
+        <action name="login" class="com.notsosecure.devsecops.actions.LoginAction" method="login">
+            <result name="admin" type="redirect">admin.action</result>
+            <result name="user" type="redirect">home.action</result>
+            <result name="input" type="tiles">login.view</result>
+        </action>
+
+        <action name="logout" class="com.notsosecure.devsecops.actions.LogoutAction">
+            <result name="success" type="redirect">home.action</result>
+        </action>
+        
+        <!--brand actions-->
+        <action name="addBrand" class="com.notsosecure.devsecops.actions.BrandAction" method="addBrand">
+            <result name="success" type="redirect">admin.action</result>
+            <result name="input">/WEB-INF/content/admin.jsp</result>
+        </action>
+
+        <action name="deleteBrand" class="com.notsosecure.devsecops.actions.BrandAction" method="delete">
+            <result name="success" type="redirect">admin.action</result>
+        </action>
+
+        <action name="viewBrand" class="com.notsosecure.devsecops.actions.BrandAction" method="view">
+            <result name="success">/WEB-INF/content/admin.jsp</result>
+        </action>
+
+        <action name="updateBrand" class="com.notsosecure.devsecops.actions.BrandAction" method="update">
+            <result name="success" type="redirect">admin.action</result>
+            <result name="input">/WEB-INF/content/admin.jsp</result>
+        </action>
+
+        <!--wish list actions-->
+
+        <action name="addToWhishList" class="com.notsosecure.devsecops.actions.WishListAction" method="addToWishList">
+            <interceptor-ref name="authenticationStack"/>
+            <result name="success" type="redirect">products.action</result>
+        </action>
+
+        <action name="viewWishList" class="com.notsosecure.devsecops.actions.WishListAction" method="viewWishList">
+            <interceptor-ref name="authenticationStack"/>
+            <result name="success" type="tiles">wishList.view</result>
+        </action>
+
+        <action name="deleteFromWishList" class="com.notsosecure.devsecops.actions.WishListAction" method="deleteFromWishList">
+            <result name="success" type="redirect">viewWishList.action</result>
+
+        </action>
+
+        <!--contact action-->
+        <action name="viewContact" class="com.notsosecure.devsecops.actions.ContactAction" method="viewContact">
+            <result name="success" type="tiles">contact.view</result>
+        </action>
+        <action name="sendEmail" class="com.notsosecure.devsecops.actions.ContactAction" method="sendEmail">
+            <result name="success" type="tiles">contact.view</result>
+        </action>
+        <!--category action-->
+        <action name="addCategory" class="com.notsosecure.devsecops.actions.CategoryAction" method="addCategory">
+            <result name="success" type="redirect">admin.action</result>
+            <result name="input">/WEB-INF/content/admin.jsp</result>
+        </action>
+
+        <action name="deleteCategory" class="com.notsosecure.devsecops.actions.CategoryAction" method="delete">
+            <result name="success" type="redirect">admin.action</result>
+        </action>
+
+        <action name="viewCategory" class="com.notsosecure.devsecops.actions.CategoryAction" method="view">
+            <result name="success">/WEB-INF/content/admin.jsp</result>
+        </action>
+
+        <action name="updateCategory" class="com.notsosecure.devsecops.actions.CategoryAction" method="update">
+            <result name="success" type="redirect">admin.action</result>
+            <result name="input">/WEB-INF/content/admin.jsp</result>
+        </action>
+
+	</package>
+<!-- 	<constant name="struts.convention.default.parent.package" value="default" /> -->
+<!-- 	<CONSTANT NAME="STRUTS.ENABLE.SLASHESINACTIONNAMES" VALUE="TRUE" /> -->
+<!-- 	<CONSTANT NAME="STRUTS.MAPPER.ALWAYSSELECTFULLNAMESPACE" VALUE="FALSE" /> -->
+<!-- 	<CONSTANT NAME="STRUTS.PATTERNMATCHER" VALUE="REGEX" /> -->
+</struts>

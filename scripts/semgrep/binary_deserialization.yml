@@ -1,0 +1,21 @@
+rules:
+- id: owasp.untrusted.deserialization.java.io.ObjectInputStream.readObject()
+  message: |
+    Dangerous function readObject() was found to be in use
+  metadata:
+    cwe: "CWE-502"
+    owasp: "A8:2017-Insecure Deserialization"
+    source-rule-url: https://cheatsheetseries.owasp.org/cheatsheets/Deserialization_Cheat_Sheet.html
+  severity: ERROR
+  patterns:
+  - pattern-either:
+    - pattern: |
+        $OIS = new ObjectInputStream(new ByteArrayInputStream(...));
+        ...
+        $OIS.readObject();        
+    - pattern: |
+        $OIS = new ObjectInputStream(...);
+        ...
+        $OIS.readObject();    
+  languages:
+  - java

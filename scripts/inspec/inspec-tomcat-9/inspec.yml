@@ -1,0 +1,6 @@
+name: Inspec-Tomcat-9-Baseline
+title: Inspec Profile for Apache Tomcat 9
+summary: A Chef InSpec profile for running a CIS Bechmark checks on Apache Tomcat 9
+maintainer: NotSoSecure
+copyright: Copyright (C) 2019 NotSoSecure
+version: 1.0.0(Beta)

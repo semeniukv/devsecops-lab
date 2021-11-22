@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<configuration>
+    <context>
+        <name>devsecops</name>
+        <desc/>
+        <inscope>true</inscope>
+        <incregexes>https://user0-staging.appsecops.dev/.*</incregexes>
+        <incregexes>https://user0-staging.appsecops.dev/accountView.action</incregexes>
+        <incregexes>https://user0-staging.appsecops.dev/*</incregexes>
+        <excregexes>https://user0-staging.appsecops.dev/logout.action</excregexes>
+        <tech>
+            <include>Db</include>
+            <include>Db.MySQL</include>
+            <include>Language</include>
+            <include>Language.JSP/Servlet</include>
+            <include>Language.Java</include>
+            <include>Language.JavaScript</include>
+            <include>Language.XML</include>
+            <include>OS</include>
+            <include>OS.Linux</include>
+             <include>SCM</include>
+            <include>SCM.Git</include>
+            <include>SCM.SVN</include>
+            <include>WS</include>
+            <include>WS.Apache</include>
+            <include>WS.Tomcat</include>
+        </tech>
+        <urlparser>
+            <class>org.zaproxy.zap.model.StandardParameterParser</class>
+            <config>{"kvps":"&amp;","kvs":"=","struct":[]}</config>
+        </urlparser>
+        <postparser>
+            <class>org.zaproxy.zap.model.StandardParameterParser</class>
+            <config>{"kvps":"&amp;","kvs":"=","struct":[]}</config>
+        </postparser>
+        <authentication>
+            <type>2</type>
+            <loggedin>\Q &lt;li&gt;&lt;a href="view.action"&gt;&lt;i class="fa fa-lock"&gt;&lt;/i&gt; Login&lt;/a&gt;&lt;/li&gt; \E</loggedin>
+            <loggedout>\Q &lt;li&gt;&lt;a href="logout.action"&gt;&lt;i class="fa fa-lock"&gt;&lt;/i&gt; Log out&lt;/a&gt;&lt;/li&gt; \E</loggedout>
+            <form>
+                <loginurl>https://user0-staging.appsecops.dev/login.action</loginurl>
+                <loginbody>email={%username%}&amp;password={%password%}</loginbody>
+                <loginpageurl>https://user0-staging.appsecops.dev/login.action</loginpageurl>
+            </form>
+        </authentication>
+        <users>
+            <user>143;true;YWRtaW5AYWRtaW4uY29t;2;YWRtaW5AYWRtaW4uY29t~YWRtaW4=~</user>
+        </users>
+        <forceduser>143</forceduser>
+        <session>
+            <type>0</type>
+        </session>
+        <authorization>
+            <type>0</type>
+            <basic>
+                <header/>
+                <body/>
+                <logic>AND</logic>
+                <code>-1</code>
+            </basic>
+        </authorization>
+    </context>
+</configuration>

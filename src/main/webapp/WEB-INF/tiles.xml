@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE tiles-definitions PUBLIC
+        "-//Apache Software Foundation//DTD Tiles Configuration 2.0//EN"
+        "http://tiles.apache.org/dtds/tiles-config_2_0.dtd">
+
+<tiles-definitions>
+
+    <definition name="main.view" template="/WEB-INF/content/mainLayout.jsp">
+        <put-attribute name="import" value="/WEB-INF/content/import.jsp"/>
+        <put-attribute name="header" value="/WEB-INF/content/header.jsp"/>
+        <put-attribute name="lsb" value="/WEB-INF/content/lsb.jsp"/>
+        <put-attribute name="footer" value="/WEB-INF/content/footer.jsp"/>
+    </definition>
+
+    <definition name="secondary.view" template="/WEB-INF/content/secondaryLayout.jsp">
+        <put-attribute name="import" value="/WEB-INF/content/import.jsp"/>
+        <put-attribute name="header" value="/WEB-INF/content/header.jsp"/>
+        <put-attribute name="footer" value="/WEB-INF/content/footer.jsp"/>
+    </definition>
+
+    <definition name="home.view" extends="main.view">
+        <put-attribute name="title" value="Home page"/>
+        <put-attribute name="slider" value="/WEB-INF/content/slider.jsp"/>
+        <put-attribute name="content" value="/WEB-INF/content/home.jsp"/>
+    </definition>
+
+    <definition name="products.view" extends="main.view">
+        <put-attribute name="title" value="products"/>
+        <put-attribute name="slider" value="/WEB-INF/content/banner.jsp"/>
+        <put-attribute name="content" value="/WEB-INF/content/allproducts.jsp"/>
+    </definition>
+
+    <definition name="productDetails.view" extends="main.view">
+        <put-attribute name="title" value="product details"/>
+        <put-attribute name="slider" value="/WEB-INF/content/banner.jsp"/>
+        <put-attribute name="content" value="/WEB-INF/content/productDetails.jsp"/>
+    </definition>
+
+
+    <definition name="blog.view" extends="main.view">
+        <put-attribute name="title" value="blog"/>
+        <put-attribute name="slider" value="/WEB-INF/content/banner.jsp"/>
+        <put-attribute name="content" value="/WEB-INF/content/blog.jsp"/>
+    </definition>
+
+
+    <definition name="checkout.view" extends="secondary.view">
+        <put-attribute name="title" value="checkout"/>
+        <put-attribute name="content" value="/WEB-INF/content/checkout.jsp"/>
+    </definition>
+
+    <definition name="account.view" extends="secondary.view">
+        <put-attribute name="title" value="checkout"/>
+        <put-attribute name="content" value="/WEB-INF/content/account.jsp"/>
+    </definition>
+
+    <definition name="cart.view" extends="secondary.view">
+        <put-attribute name="title" value="cart"/>
+        <put-attribute name="content" value="/WEB-INF/content/cart.jsp"/>
+    </definition>
+
+    <definition name="login.view" extends="secondary.view">
+        <put-attribute name="title" value="login"/>
+        <put-attribute name="content" value="/WEB-INF/content/login.jsp"/>
+    </definition>
+
+    <definition name="wishList.view" extends="secondary.view">
+        <put-attribute name="title" value="wish list"/>
+        <put-attribute name="content" value="/WEB-INF/content/wishlist.jsp"/>
+    </definition>
+    
+    <definition name="contact.view" extends="secondary.view">
+        <put-attribute name="title" value="CONTACT-US"/>
+        <put-attribute name="content" value="/WEB-INF/content/contact.jsp"/>
+    </definition>
+
+</tiles-definitions>
