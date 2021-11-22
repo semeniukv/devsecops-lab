@@ -47,6 +47,26 @@ pipeline {
                      '''
          }
       }
+      stage('Static Analysis') {
+         steps {
+          parallel (
+             SCA: {
+                withCredentials([usernamePassword(credentialsId: 'archerysec', passwordVariable: 'ARCHERY_PASS', usernameVariable: 'ARCHERY_USER')]) {
+                sh '''
+                  export COMMIT_ID=`cat .git/HEAD`
+                  export DCHIGH=25
+                  export DCMEDIUM=100
+                  ls
+                  dependency-check --noupdate --project "Devsecops" --scan target/*.war -f XML --disableOssIndex -o $WORKSPACE/reports/dependency-check.xml
+                  bash ${WORKSPACE}/scripts/dependency_check/dependency_check.sh
+
+                '''
+                }
+              },
+
+          )
+        }
+      }
       stage('Staging Setup') {
          steps {
             parallel(
@@ -57,7 +77,8 @@ pipeline {
                               docker build --no-cache -t "devsecops/app:staging" -f docker/app/Dockerfile .
                               docker tag "devsecops/app:staging" "${DOCKER_REGISTRY}/devsecops/app:staging"
                               docker push "${DOCKER_REGISTRY}/devsecops/app:staging"
-
+                              docker rmi "${DOCKER_REGISTRY}/devsecops/app:staging"
+                              
                            '''
                         },
                   db:   { // Parallely start the MySQL Daemon in the staging server first stop if already running then start
@@ -172,14 +193,6 @@ pipeline {
                 -v /home/vagrant/logs:/usr/local/tomcat/logs --name prodapp ${DOCKER_REGISTRY}/devsecops/app:production
              '''
             }
-         }
-      }
-      stage('WAF') {
-         steps {
-             sh '''
-             export BHOST="`hostname -I | awk '{print $1}'`"
-             cd /home/vagrant/on-prem-lab/provisioning/production/WAF/ && docker-compose up -d
-             '''
          }
       }
    }
