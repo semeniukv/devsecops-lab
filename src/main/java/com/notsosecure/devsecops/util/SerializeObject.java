@@ -31,34 +31,34 @@ public class SerializeObject {
 	}
 
 // VULNERABLE CODE
-	 public static Object stringToObject(String s) {
+	//  public static Object stringToObject(String s) {
 
-	 	byte[] data = Base64Utils.decodeByte(s);
-	 	ObjectInputStream ois;
-	 	Object o = new Object();
-	 	try {
-	 		ois = new ObjectInputStream(new ByteArrayInputStream(data));
-	 		o = ois.readObject();
-	 		ois.close();
+	//  	byte[] data = Base64Utils.decodeByte(s);
+	//  	ObjectInputStream ois;
+	//  	Object o = new Object();
+	//  	try {
+	//  		ois = new ObjectInputStream(new ByteArrayInputStream(data));
+	//  		o = ois.readObject();
+	//  		ois.close();
 
-	 	} catch (EOFException e) {
-	 		// TODO Auto-generated catch block
-	 		e.printStackTrace();
-	 	} catch (ClassNotFoundException e) {
-	 		// TODO Auto-generated catch block
-	 		e.printStackTrace();
-	 	} catch (IOException e) {
-	 		e.printStackTrace();
-	 	}
-	 	System.out.println(o.toString());
-	 	return o;
-	 }
+	//  	} catch (EOFException e) {
+	//  		// TODO Auto-generated catch block
+	//  		e.printStackTrace();
+	//  	} catch (ClassNotFoundException e) {
+	//  		// TODO Auto-generated catch block
+	//  		e.printStackTrace();
+	//  	} catch (IOException e) {
+	//  		e.printStackTrace();
+	//  	}
+	//  	System.out.println(o.toString());
+	//  	return o;
+	//  }
 
-	// public static Object stringToObject(String s) {
+	public static Object stringToObject(String s) {
 
-	// 	return new StudentSer("goku");
+		return new StudentSer("goku");
 
-	// }
+	}
 
 	public static void deserializeCookie(HttpServletRequest servletRequest) {
 		Cookie[] cookies = null ;
