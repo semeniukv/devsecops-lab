@@ -1,7 +1,7 @@
 <%@ taglib prefix="s" uri="/struts-tags" %>
 <div class="col-sm-9 padding-right" id="products">
     <div class="features_items"><!--features_items-->
-        <h2 class="title text-center">Featured Items</h2>
+        <h2 class="title text-center">New Cool Items</h2>
         <s:iterator value="products">
             <div class="col-sm-4">
                 <div class="product-image-wrapper">
