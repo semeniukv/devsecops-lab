@@ -50,20 +50,24 @@ pipeline {
       stage('Static Analysis') {
          steps {
           parallel (
-             SCA: {
-                withCredentials([usernamePassword(credentialsId: 'archerysec', passwordVariable: 'ARCHERY_PASS', usernameVariable: 'ARCHERY_USER')]) {
-                sh '''
-                  export COMMIT_ID=`cat .git/HEAD`
-                  export DCHIGH=25
-                  export DCMEDIUM=100
-                  ls
-                  dependency-check --noupdate --project "Devsecops" --scan target/*.war -f XML --disableOssIndex -o $WORKSPACE/reports/dependency-check.xml
-                  bash ${WORKSPACE}/scripts/dependency_check/dependency_check.sh
+            SCA: {
+               echo  'Dependency Check'
+            },
+            SAST: {
+                 sh '''
+                    semgrep -f $WORKSPACE/scripts/semgrep/ $WORKSPACE/src/ --json | tee $WORKSPACE/reports/semgrep.json
+                    '''
+                    withCredentials([usernamePassword(credentialsId: 'archerysec', passwordVariable: 'ARCHERY_PASS', usernameVariable: 'ARCHERY_USER')]) {
 
-                '''
+                     sh '''
+                        export COMMIT_ID=`cat .git/HEAD`
+                        export SHIGH=3
+                        export SMEDIUM=20
+                        bash $WORKSPACE/scripts/semgrep/semgrep.sh
+
+                  '''
                 }
-              },
-
+               }
           )
         }
       }
@@ -78,7 +82,7 @@ pipeline {
                               docker tag "devsecops/app:staging" "${DOCKER_REGISTRY}/devsecops/app:staging"
                               docker push "${DOCKER_REGISTRY}/devsecops/app:staging"
                               docker rmi "${DOCKER_REGISTRY}/devsecops/app:staging"
-                              
+
                            '''
                         },
                   db:   { // Parallely start the MySQL Daemon in the staging server first stop if already running then start
@@ -110,7 +114,7 @@ pipeline {
                 -e MYSQL_DB_PASSWORD=${MYSQL_DB_PASSWORD} -e MYSQL_JDBC_URL=${MYSQL_STAGING_URL} -e MYSQL_DB_NAME=${MYSQL_DB_NAME} \
                 -v /home/vagrant/stglogs:/usr/local/tomcat/logs --name stgapp ${DOCKER_REGISTRY}/devsecops/app:staging
                '''
-            // Check and wait until the staging application is up and running   
+            // Check and wait until the staging application is up and running
             sh '''
                 until [ $(curl --head -s -o /dev/null --fail "http://127.0.0.1:8050/login.action" -w "%{http_code}") -eq 200 ]; do sleep 3; done
                 echo "** Staging.local up and running **"
@@ -122,9 +126,10 @@ pipeline {
                parallel(
                   UAT:  {
                      sh '''
+                        pip install mechanize
                         export COMMIT_ID=`cat .git/HEAD`
                         sleep 5
-                        export job_status=`python3 ${WORKSPACE}/scripts/uat/uat_testing.py --email ${COMMIT_ID}@eshoppe.com --password test@123 --url http://localhost:8050/view.action | grep SUCCESS`
+                        export job_status=`python ${WORKSPACE}/scripts/uat/uat_testing.py --email ${COMMIT_ID}@eshoppe.com --password test@123 --url http://localhost:8050/view.action | grep SUCCESS`
                         if [ -n "$job_status" ]
                         then
                            # Run your script commands here
@@ -203,8 +208,8 @@ pipeline {
       }
     }
     always {
-          step([$class: 'Mailer', notifyEveryUnstableBuild: true,recipients: "build-failed@devops.local",sendToIndividuals: true])
-          step([$class: 'WsCleanup'])
-    }
+           step([$class: 'Mailer', notifyEveryUnstableBuild: true,recipients: "build-failed@devops.local",sendToIndividuals: true])
+           step([$class: 'WsCleanup'])
+     }
   }
 }
