@@ -23,10 +23,8 @@ pipeline {
      MYSQL_DB_PASSWORD="test"
      MYSQL_DB_USER="test"
      MYSQL_DB_ROOT="tooor"
-     ARCHERYSEC_HOST ="http://localhost:8000" // ArcherySec URL
+     ARCHERYSEC_HOST="http://localhost:8000" // ArcherySec URL
      TARGET_URL="http://localhost:8050" //Staging applicaiton URL
-     TARGET_IP="http://localhost:8050"
-     OPENVAS_HOST="localhost"
      OPENVAS_USER="admin"
      OPENVAS_PASS="admin"
      OPENVAS_PORT="9390"
@@ -54,20 +52,8 @@ pipeline {
                echo  'Dependency Check'
             },
             SAST: {
-                 sh '''
-                    semgrep -f $WORKSPACE/scripts/semgrep/ $WORKSPACE/src/ --json | tee $WORKSPACE/reports/semgrep.json
-                    '''
-                    withCredentials([usernamePassword(credentialsId: 'archerysec', passwordVariable: 'ARCHERY_PASS', usernameVariable: 'ARCHERY_USER')]) {
-
-                     sh '''
-                        export COMMIT_ID=`cat .git/HEAD`
-                        export SHIGH=3
-                        export SMEDIUM=20
-                        bash $WORKSPACE/scripts/semgrep/semgrep.sh
-
-                  '''
-                }
-               }
+                  echo  'FindSecBugs'
+            }
           )
         }
       }
@@ -76,13 +62,12 @@ pipeline {
             parallel(
                   app:  {
                         sh '''
-
                               mv ${WORKSPACE}/target/${GIT_COMMIT}.war ${WORKSPACE}/target/ROOT.war
                               docker build --no-cache -t "devsecops/app:staging" -f docker/app/Dockerfile .
                               docker tag "devsecops/app:staging" "${DOCKER_REGISTRY}/devsecops/app:staging"
                               docker push "${DOCKER_REGISTRY}/devsecops/app:staging"
                               docker rmi "${DOCKER_REGISTRY}/devsecops/app:staging"
-
+                              
                            '''
                         },
                   db:   { // Parallely start the MySQL Daemon in the staging server first stop if already running then start
@@ -92,11 +77,9 @@ pipeline {
                               docker push "${DOCKER_REGISTRY}/devsecops/db:staging"
                               docker rmi "${DOCKER_REGISTRY}/devsecops/db:staging" || true
                               docker rmi "devsecops/db:staging" || true
-
                               docker stop stgmysqldb stgapp || true
                               docker rm stgmysqldb stgapp || true
                               docker rmi ${DOCKER_REGISTRY}/devsecops/app:staging ${DOCKER_REGISTRY}/devsecops/db:staging || true
-
                               docker run -d -p 3305:3306 \
                               -e MYSQL_DATABASE=${MYSQL_DB_NAME} -e MYSQL_ROOT_PASSWORD=${MYSQL_DB_ROOT} -e MYSQL_USER=${MYSQL_DB_USER} -e MYSQL_PASSWORD=${MYSQL_DB_PASSWORD} \
                               -v /home/vagrant/stgmysql:/var/lib/mysql --name stgmysqldb  ${DOCKER_REGISTRY}/devsecops/db:staging \
@@ -114,7 +97,7 @@ pipeline {
                 -e MYSQL_DB_PASSWORD=${MYSQL_DB_PASSWORD} -e MYSQL_JDBC_URL=${MYSQL_STAGING_URL} -e MYSQL_DB_NAME=${MYSQL_DB_NAME} \
                 -v /home/vagrant/stglogs:/usr/local/tomcat/logs --name stgapp ${DOCKER_REGISTRY}/devsecops/app:staging
                '''
-            // Check and wait until the staging application is up and running
+            // Check and wait until the staging application is up and running   
             sh '''
                 until [ $(curl --head -s -o /dev/null --fail "http://127.0.0.1:8050/login.action" -w "%{http_code}") -eq 200 ]; do sleep 3; done
                 echo "** Staging.local up and running **"
@@ -126,10 +109,9 @@ pipeline {
                parallel(
                   UAT:  {
                      sh '''
-                        pip install mechanize
                         export COMMIT_ID=`cat .git/HEAD`
                         sleep 5
-                        export job_status=`python ${WORKSPACE}/scripts/uat/uat_testing.py --email ${COMMIT_ID}@eshoppe.com --password test@123 --url http://localhost:8050/view.action | grep SUCCESS`
+                        export job_status=`python3 ${WORKSPACE}/scripts/uat/uat_testing.py --email ${COMMIT_ID}@eshoppe.com --password test@123 --url http://localhost:8050/view.action | grep SUCCESS`
                         if [ -n "$job_status" ]
                         then
                            # Run your script commands here
@@ -140,6 +122,19 @@ pipeline {
                         fi
                      '''
                   },
+                  DAST: {
+                     echo 'Dynamic Application Security Testing'
+                  },
+                  VA: {
+                     withCredentials([usernamePassword(credentialsId: 'archerysec', passwordVariable: 'ARCHERY_PASS', usernameVariable: 'ARCHERY_USER')]) {
+                     sh '''
+                        export COMMIT_ID=`cat .git/HEAD`
+                        export TARGET_IP="`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' stgapp`"
+                        export OPENVAS_HOST="`hostname -I | awk '{print $1}'`"
+                        bash ${WORKSPACE}/scripts/openvas/openvas-cli.sh
+                     '''
+                     }
+                  }
                )
          }
       }
@@ -208,8 +203,8 @@ pipeline {
       }
     }
     always {
-           step([$class: 'Mailer', notifyEveryUnstableBuild: true,recipients: "build-failed@devops.local",sendToIndividuals: true])
-           step([$class: 'WsCleanup'])
-     }
+          step([$class: 'Mailer', notifyEveryUnstableBuild: true,recipients: "build-failed@devops.local",sendToIndividuals: true])
+
+    }
   }
 }
