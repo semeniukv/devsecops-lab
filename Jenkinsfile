@@ -23,10 +23,8 @@ pipeline {
      MYSQL_DB_PASSWORD="test"
      MYSQL_DB_USER="test"
      MYSQL_DB_ROOT="tooor"
-     ARCHERYSEC_HOST ="http://localhost:8000" // ArcherySec URL
+     ARCHERYSEC_HOST="http://localhost:8000" // ArcherySec URL
      TARGET_URL="http://localhost:8050" //Staging applicaiton URL
-     TARGET_IP="http://localhost:8050"
-     OPENVAS_HOST="localhost"
      OPENVAS_USER="admin"
      OPENVAS_PASS="admin"
      OPENVAS_PORT="9390"
@@ -47,17 +45,29 @@ pipeline {
                      '''
          }
       }
+      stage('Static Analysis') {
+         steps {
+          parallel (
+            SCA: {
+               echo  'Dependency Check'
+            },
+            SAST: {
+                  echo  'FindSecBugs'
+            }
+          )
+        }
+      }
       stage('Staging Setup') {
          steps {
             parallel(
                   app:  {
                         sh '''
-
                               mv ${WORKSPACE}/target/${GIT_COMMIT}.war ${WORKSPACE}/target/ROOT.war
                               docker build --no-cache -t "devsecops/app:staging" -f docker/app/Dockerfile .
                               docker tag "devsecops/app:staging" "${DOCKER_REGISTRY}/devsecops/app:staging"
                               docker push "${DOCKER_REGISTRY}/devsecops/app:staging"
-
+                              docker rmi "${DOCKER_REGISTRY}/devsecops/app:staging"
+                              
                            '''
                         },
                   db:   { // Parallely start the MySQL Daemon in the staging server first stop if already running then start
@@ -67,11 +77,9 @@ pipeline {
                               docker push "${DOCKER_REGISTRY}/devsecops/db:staging"
                               docker rmi "${DOCKER_REGISTRY}/devsecops/db:staging" || true
                               docker rmi "devsecops/db:staging" || true
-
                               docker stop stgmysqldb stgapp || true
                               docker rm stgmysqldb stgapp || true
                               docker rmi ${DOCKER_REGISTRY}/devsecops/app:staging ${DOCKER_REGISTRY}/devsecops/db:staging || true
-
                               docker run -d -p 3305:3306 \
                               -e MYSQL_DATABASE=${MYSQL_DB_NAME} -e MYSQL_ROOT_PASSWORD=${MYSQL_DB_ROOT} -e MYSQL_USER=${MYSQL_DB_USER} -e MYSQL_PASSWORD=${MYSQL_DB_PASSWORD} \
                               -v /home/vagrant/stgmysql:/var/lib/mysql --name stgmysqldb  ${DOCKER_REGISTRY}/devsecops/db:staging \
@@ -114,6 +122,19 @@ pipeline {
                         fi
                      '''
                   },
+                  DAST: {
+                     echo 'Dynamic Application Security Testing'
+                  },
+                  VA: {
+                     withCredentials([usernamePassword(credentialsId: 'archerysec', passwordVariable: 'ARCHERY_PASS', usernameVariable: 'ARCHERY_USER')]) {
+                     sh '''
+                        export COMMIT_ID=`cat .git/HEAD`
+                        export TARGET_IP="`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' stgapp`"
+                        export OPENVAS_HOST="`hostname -I | awk '{print $1}'`"
+                        bash ${WORKSPACE}/scripts/openvas/openvas-cli.sh
+                     '''
+                     }
+                  }
                )
          }
       }
@@ -174,14 +195,6 @@ pipeline {
             }
          }
       }
-      stage('WAF') {
-         steps {
-             sh '''
-             export BHOST="`hostname -I | awk '{print $1}'`"
-             cd /home/vagrant/on-prem-lab/provisioning/production/WAF/ && docker-compose up -d
-             '''
-         }
-      }
    }
     post {
     failure {
@@ -191,7 +204,7 @@ pipeline {
     }
     always {
           step([$class: 'Mailer', notifyEveryUnstableBuild: true,recipients: "build-failed@devops.local",sendToIndividuals: true])
-          step([$class: 'WsCleanup'])
+
     }
   }
 }
