@@ -11,7 +11,6 @@
 // Twitter: @notsosecure
 //
 // This file is part of DevSecOps Training.
-
 pipeline {
    agent any
    environment {
@@ -47,18 +46,27 @@ pipeline {
                      '''
          }
       }
-      stage('Staging Setup') {
+      stage('Static Analysis') {
+         steps {
+          parallel (
+            SCA: {
+               echo  'Dependency Check'
+            },
+            SAST: {
+               echo  'FindSecBugs'
+               }
+          )
+        }
+      }
+     stage('Staging Setup') {
          steps {
             parallel(
                   app:  {
                         sh '''
-
                               mv ${WORKSPACE}/target/${GIT_COMMIT}.war ${WORKSPACE}/target/ROOT.war
                               docker build --no-cache -t "devsecops/app:staging" -f docker/app/Dockerfile .
                               docker tag "devsecops/app:staging" "${DOCKER_REGISTRY}/devsecops/app:staging"
                               docker push "${DOCKER_REGISTRY}/devsecops/app:staging"
-                              docker rmi "${DOCKER_REGISTRY}/devsecops/app:staging"
-                              
                            '''
                         },
                   db:   { // Parallely start the MySQL Daemon in the staging server first stop if already running then start
@@ -68,11 +76,9 @@ pipeline {
                               docker push "${DOCKER_REGISTRY}/devsecops/db:staging"
                               docker rmi "${DOCKER_REGISTRY}/devsecops/db:staging" || true
                               docker rmi "devsecops/db:staging" || true
-
                               docker stop stgmysqldb stgapp || true
                               docker rm stgmysqldb stgapp || true
                               docker rmi ${DOCKER_REGISTRY}/devsecops/app:staging ${DOCKER_REGISTRY}/devsecops/db:staging || true
-
                               docker run -d -p 3305:3306 \
                               -e MYSQL_DATABASE=${MYSQL_DB_NAME} -e MYSQL_ROOT_PASSWORD=${MYSQL_DB_ROOT} -e MYSQL_USER=${MYSQL_DB_USER} -e MYSQL_PASSWORD=${MYSQL_DB_PASSWORD} \
                               -v /home/vagrant/stgmysql:/var/lib/mysql --name stgmysqldb  ${DOCKER_REGISTRY}/devsecops/db:staging \
@@ -85,7 +91,7 @@ pipeline {
       stage('Staging Deploy') {//providing delay for mysql to start
          steps {
             sh '''
-		            sleep 15
+                  sleep 15
                 docker run -d -p 8050:8080 --link stgmysqldb -e MYSQL_DB_USER=${MYSQL_DB_USER} \
                 -e MYSQL_DB_PASSWORD=${MYSQL_DB_PASSWORD} -e MYSQL_JDBC_URL=${MYSQL_STAGING_URL} -e MYSQL_DB_NAME=${MYSQL_DB_NAME} \
                 -v /home/vagrant/stglogs:/usr/local/tomcat/logs --name stgapp ${DOCKER_REGISTRY}/devsecops/app:staging
@@ -116,10 +122,7 @@ pipeline {
                      '''
                   },
                   DAST: {
-                     echo 'Dynamic Application Security Testing'
-                  },
-                  VA: {
-                     echo 'Vulnerability Assessment'
+                     echo 'DAST'
                   }
                )
          }
@@ -155,7 +158,6 @@ pipeline {
                                  -v /home/vagrant/prodmysql:/var/lib/mysql --name prodmysqldb  ${DOCKER_REGISTRY}/devsecops/db:production \
                                  --table_definition_cache=100 --performance_schema=0 --default-authentication-plugin=mysql_native_password
                             '''
-
                            }
                         }
                      )
@@ -164,14 +166,26 @@ pipeline {
       stage('Container Analysis') {
          steps{
                parallel(
-                  CS: {
-                     withCredentials([usernamePassword(credentialsId: 'archerysec', passwordVariable: 'ARCHERY_PASS', usernameVariable: 'ARCHERY_USER')]) {
-                     sh '''
-                           export TRIVY_NON_SSL=true
-                           trivy -f json -o ${WORKSPACE}/reports/trivy_report.json ${DOCKER_REGISTRY}/devsecops/app:production
-                           bash ${WORKSPACE}/scripts/trivy/trivy.sh
+                  CAC: {
+                        withCredentials([usernamePassword(credentialsId: 'archerysec', passwordVariable: 'ARCHERY_PASS', usernameVariable: 'ARCHERY_USER'), string(credentialsId: 'mysqlvault', variable: 'mysqlvault')]) {
+                        sh '''
+                            docker stop prodapp || true
+                            docker rm prodapp || true
+                            export VAULT_ADDR="http://`hostname -I | awk '{print $1}'`:8200"
+                            docker run -d -p 8060:8080 --link prodmysqldb -e MYSQL_DB_USER=${MYSQL_DB_USER} \
+                            -e VAULT_TOKEN_MYSQL=${mysqlvault} -e VAULT_ADDR=${VAULT_ADDR} -e MYSQL_JDBC_URL=${MYSQL_PRODUCTION_URL} \
+                            -e MYSQL_DB_NAME=${MYSQL_DB_NAME}  -e VAULT_PATH_MYSQL=${VAULT_PATH_MYSQL} \
+                            -v /home/vagrant/logs:/usr/local/tomcat/logs --name prodapp ${DOCKER_REGISTRY}/devsecops/app:production
+                           export COMMIT_ID=`cat .git/HEAD`
+                           bash ${WORKSPACE}/scripts/inspec/run_inspec.sh || true
+                           bash ${WORKSPACE}/scripts/inspec/inspec.sh
+                           docker stop prodapp || true
+                           docker rm prodapp || true
                         '''
                      }
+                  },
+                  CS: {
+                     echo 'Container Scanning'
                   }
                )
          }
@@ -196,6 +210,11 @@ pipeline {
             }
          }
       }
+      stage('WAF') {
+         steps {
+            echo 'WAF Enable'
+         }
+      }
    }
     post {
     failure {
@@ -205,7 +224,6 @@ pipeline {
     }
     always {
           step([$class: 'Mailer', notifyEveryUnstableBuild: true,recipients: "build-failed@devops.local",sendToIndividuals: true])
-          step([$class: 'WsCleanup'])
     }
   }
 }
